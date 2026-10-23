@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSK 4 Lesson 1 - Text 1 Interactive Learning</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #62b155;
+            --primary-dark: #4d9442;
+            --primary-light: #e8f5e9;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-dark: #2c3e50;
+            --text-muted: #666666;
+            --accent-color: #e67e22;
+            --correct-color: #2ecc71;
+            --wrong-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        /* Top Header Navigation */
+        .top-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-header h1 {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pill-tag {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: var(--primary-dark);
+        }
+
+        /* Page Layouts */
+        .page-content {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .page-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* PAGE 1: Text & Vocab Hover */
+        .lesson-banner {
+            background-color: var(--primary-light);
+            border-left: 5px solid var(--primary-color);
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .lesson-banner h2 {
+            color: var(--primary-dark);
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .lesson-banner p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .dialogue-layout {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .dialogue-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chat-item {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .avatar-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 60px;
+            flex-shrink: 0;
+        }
+
+        .avatar-box img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+            background: #fff;
+        }
+
+        .avatar-box span {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .speech-bubble {
+            background: #f8f9fa;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 18px;
+            line-height: 1.8;
+            position: relative;
+            max-width: 80%;
+            color: #333;
+        }
+
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 18px;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 8px solid #f8f9fa;
+        }
+
+        .stage-note {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            font-size: 15px;
+            margin: 5px 0;
+        }
+
+        /* Hover Vocabulary Highlight & Tooltip */
+        .vocab-word {
+            color: var(--primary-dark);
+            font-weight: bold;
+            border-bottom: 2px dashed var(--primary-color);
+            cursor: pointer;
+            position: relative;
+            padding: 0 2px;
+            transition: background 0.2s;
+        }
+
+        .vocab-word:hover {
+            background-color: #d4edda;
+            border-radius: 4px;
+        }
+
+        .tooltip-card {
+            visibility: hidden;
+            opacity: 0;
+            width: 220px;
+            background-color: #ffffff;
+            color: #333;
+            text-align: left;
+            border-radius: 10px;
+            padding: 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.18);
+            border: 1px solid var(--primary-color);
+            transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+            font-weight: normal;
+            font-size: 14px;
+            line-height: 1.4;
+            pointer-events: none;
+        }
+
+        .tooltip-card::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: #ffffff transparent transparent transparent;
+        }
+
+        .vocab-word:hover .tooltip-card {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        .tooltip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+            margin-bottom: 6px;
+        }
+
+        .tooltip-py {
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        .tooltip-pos {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .tooltip-en {
+            color: #444;
+            font-size: 13px;
+        }
+
+        /* Sidebar Vocabulary Reference */
+        .sidebar-vocab {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .sidebar-vocab h3 {
+            font-size: 16px;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .vocab-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .vocab-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .vocab-item-cn {
+            font-weight: bold;
+            font-size: 16px;
+            color: #222;
+        }
+
+        .vocab-item-py {
+            color: var(--accent-color);
+            font-size: 13px;
+        }
+
+        .vocab-item-en {
+            color: #666;
+            font-size: 13px;
+            text-align: right;
+        }
+
+        .speak-icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--primary-color);
+            transition: transform 0.2s;
+        }
+
+        .speak-icon-btn:hover {
+            transform: scale(1.2);
+        }
+
+        /* PAGE 2: Multiple Choice Quiz */
+        .quiz-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .quiz-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--text-dark);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .option-btn {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+        }
+
+        .option-btn.selected {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+            font-weight: bold;
+        }
+
+        .option-btn.correct {
+            border-color: var(--correct-color);
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .option-btn.wrong {
+            border-color: var(--wrong-color);
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* PAGE 3: Speech Recognition Test */
+        .speech-test-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+
+        .word-display-box {
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--primary-dark);
+            margin: 20px 0 10px 0;
+            letter-spacing: 2px;
+        }
+
+        .pinyin-hint-box {
+            font-size: 20px;
+            color: var(--accent-color);
+            height: 30px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .speech-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 22px;
+            border-radius: 25px;
+            border: none;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(98, 177, 85, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-mic {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-mic:hover {
+            background: #c0392b;
+        }
+
+        .btn-mic.recording {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+
+        .speech-feedback {
+            font-size: 16px;
+            min-height: 24px;
+            font-weight: 500;
+        }
+
+        /* Action Footer Bar */
+        .action-footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .score-banner {
+            text-align: center;
+            padding: 15px;
+            background: var(--primary-light);
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-dark);
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Top Header Navigation -->
+        <div class="top-header">
+            <h1><span class="pill-tag">Text 1</span> 课文1 学习与巩固</h1>
+            <div class="nav-tabs">
+                <button class="tab-btn active" onclick="switchPage(1)">1. 课文与生词</button>
+                <button class="tab-btn" onclick="switchPage(2)">2. 汉英选择题</button>
+                <button class="tab-btn" onclick="switchPage(3)">3. 朗读测试</button>
+            </div>
+        </div>
+
+        <!-- PAGE 1: Dialogue & Hover Vocabulary -->
+        <div id="page1" class="page-content active">
+            <div class="lesson-banner">
+                <h2>📍 在学院办公室，白家月和陈天中在办理入学手续。</h2>
+                <p>At the college office, Bai Jiayue and Chen Tianzhong were going through the enrollment procedures.</p>
+                <p style="margin-top: 6px; color: var(--primary-dark); font-weight: bold;">💡 提示：将鼠标移至下划线生词上可查看拼音、词性与释义并按🔊发音。</p>
+            </div>
+
+            <div class="dialogue-layout">
+                <!-- Dialogue Chat Section -->
+                <div class="chat-container">
+                    
+                    <!-- Line 1: Teacher -->
+                    <div class="chat-item">
+                        <div class="avatar-box">
+                            <img src="https://i.ibb.co.com/jvtQvfC9/image.png" alt="老师">
+                            <span>老师</span>
+                        </div>
+                        <div class="speech-bubble">
+                            你们好，欢迎来到中国留学！请把护照、
+                            <span class="vocab-word" onclick="speakText('签证')">签证
+                                <span class="tooltip-card">
+                                    <span class="tooltip-header"><span class="tooltip-py">qiānzhèng</span><span class="tooltip-pos">n.</span></span>
+                                    <span class="tooltip-en">visa</span>
+                                </span>
+                            </span> 和 
+                            <span class="vocab-word" onclick="speakText('入学')">入学
+                                <span class="tooltip-card">
+                                    <span class="tooltip-header"><span class="tooltip-py">rùxué</span><span class="tooltip-pos">v.</span></span>
+                                    <span class="tooltip-en">enter a school/college</span>
+                                </span>
+                            </span>
+                            <span class="vocab-word" onclick="speakText('通知')">通知
+                                <span class="tooltip-card">
+                                    <span class="tooltip-header"><span class="tooltip-py">tōngzhī</span><span class="tooltip-pos">v./n.</span></span>
+                                    <span class="tooltip-en">notify; notice</span>
+                                </span>
+                            </span>书给我。
+                            <button class="speak-icon-btn" onclick="speakText('你们好，欢迎来到中国留学！请把护照、签证和入学通知书给我。')">🔊</button>
+                        </div>
+                    </div>
+
+                    <!-- Line 2: Bai Jiayue -->
+                    <div class="chat-item">
+                        <div class="avatar-box">
+                            <img src="https://i.ibb.co.com/hxdZGkcS/image.png" alt="白家月">
+                            <span>白家月</span>
+                        </div>
+                        <div class="speech-bubble">
+                            好的。这是我们的
+                            <span class="vocab-word" onclick="speakText('证件')">证件
+                                <span class="tooltip-card">
+                                    <span class="tooltip-header"><span class="tooltip-py">zhèngjiàn</span><span class="tooltip-pos">n.</span></span>
+                                    <span class="tooltip-en">papers; credentials</span>
+                                </span>
+                            </span> 和 
+                            <span class="vocab-word" onclick="speakText('材料')">材料
+                                <span class="tooltip-card">
+                                    <span class="tooltip-header"><span class="tooltip-py">cáiliào</span><span class="tooltip-pos">n.</span></span>
+                                    <span class="tooltip-en">reference material; material</span>
+                                </span>
+                            </span>。
+                            <button class="speak-icon-btn" onclick="speakText('好的。这是我们的证件和材料。')">🔊</button>
+                        </div>
+                    </div>
+
+                    <div class="stage-note">（几分钟后。）</div>
+
+                    <!-- Line 3: Teacher -->
+                    <div class="chat-item">
+                        <div class="avatar-box">
+                            <img src="https://i.ibb.co.com/jvtQvfC9/image.png" alt="老师">
+                            <span>老师</span>
+                        </div>
+                        <div class="speech-bubble">
+                            办好了，这是你们的学生
+                            <span class="vocab-word" onclick="speakText('证')">证
+                                <span class="tooltip-card">
+                                    <span class="tooltip-header"><span class="tooltip-py">zhèng</span><span class="tooltip-pos">n.</span></span>
+                                    <span class="tooltip-en">certificate; card</span>
+                                </span>
+                            </span>，下周一开始上课。先试听两周，表后在网上选课。
+                            <button class="speak-icon-btn" onclick="speakText('办好了，这是你们的学生证，下周一开始上课。先试听两周，然后在网上选课。')">🔊</button>
+                        </div>
+                    </div>
+
+                    <!-- Line 4: Bai Jiayue & Chen Tianzhong -->
+                    <div class="chat-item">
+                        <div class="avatar-box">
+                            <div style="display:flex; gap:2px;">
+                                <img src="https://i.ibb.co.com/hxdZGkcS/image.png" style="width:28px;height:28px;" alt="白家月">
+                                <img src="https://i.ibb.co.com/prWDN0RM/image.png" style="width:28px;height:28px;" alt="陈天中">
+                            </div>
+                            <span>白家月/陈天中</span>
+                        </div>
+                        <div class="speech-bubble">
+                            谢谢老师。
+                            <button class="speak-icon-btn" onclick="speakText('谢谢老师。')">🔊</button>
+                        </div>
+                    </div>
+
+                    <!-- Line 5: Teacher -->
+                    <div class="chat-item">
+                        <div class="avatar-box">
+                            <img src="https://i.ibb.co.com/jvtQvfC9/image.png" alt="老师">
+                            <span>老师</span>
+                        </div>
+                        <div class="speech-bubble">
+                            不客气，你们以后有
+                            <span class="vocab-word" onclick="speakText('任何')">任何
+                                <span class="tooltip-card">
+                                    <span class="tooltip-header"><span class="tooltip-py">rènhé</span><span class="tooltip-pos">pron.</span></span>
+                                    <span class="tooltip-en">any; whatever</span>
+                                </span>
+                            </span> 问题都可以来找我。
+                            <button class="speak-icon-btn" onclick="speakText('不客气，你们以后有任何问题都可以来找我。')">🔊</button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Sidebar Vocabulary List -->
+                <div class="sidebar-vocab">
+                    <h3>生词生字 New Words</h3>
+                    <ul class="vocab-list">
+                        <li class="vocab-item">
+                            <div><span class="vocab-item-cn">① 签证</span> <span class="vocab-item-py">qiānzhèng</span></div>
+                            <div class="vocab-item-en">n. visa <button class="speak-icon-btn" onclick="speakText('签证')">🔊</button></div>
+                        </li>
+                        <li class="vocab-item">
+                            <div><span class="vocab-item-cn">② 入学</span> <span class="vocab-item-py">rùxué</span></div>
+                            <div class="vocab-item-en">v. enter school <button class="speak-icon-btn" onclick="speakText('入学')">🔊</button></div>
+                        </li>
+                        <li class="vocab-item">
+                            <div><span class="vocab-item-cn">③ 通知</span> <span class="vocab-item-py">tōngzhī</span></div>
+                            <div class="vocab-item-en">v./n. notice <button class="speak-icon-btn" onclick="speakText('通知')">🔊</button></div>
+                        </li>
+                        <li class="vocab-item">
+                            <div><span class="vocab-item-cn">④ 证件</span> <span class="vocab-item-py">zhèngjiàn</span></div>
+                            <div class="vocab-item-en">n. papers <button class="speak-icon-btn" onclick="speakText('证件')">🔊</button></div>
+                        </li>
+                        <li class="vocab-item">
+                            <div><span class="vocab-item-cn">⑤ 材料</span> <span class="vocab-item-py">cáiliào</span></div>
+                            <div class="vocab-item-en">n. material <button class="speak-icon-btn" onclick="speakText('材料')">🔊</button></div>
+                        </li>
+                        <li class="vocab-item">
+                            <div><span class="vocab-item-cn">⑥ 证</span> <span class="vocab-item-py">zhèng</span></div>
+                            <div class="vocab-item-en">n. card/certificate <button class="speak-icon-btn" onclick="speakText('证')">🔊</button></div>
+                        </li>
+                        <li class="vocab-item">
+                            <div><span class="vocab-item-cn">⑦ 任何</span> <span class="vocab-item-py">rènhé</span></div>
+                            <div class="vocab-item-en">pron. any <button class="speak-icon-btn" onclick="speakText('任何')">🔊</button></div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="action-footer">
+                <div></div>
+                <button class="btn btn-primary" onclick="switchPage(2)">进入下一页：汉英选择题 ➔</button>
+            </div>
+        </div>
+
+        <!-- PAGE 2: Chinese to English Quiz -->
+        <div id="page2" class="page-content">
+            <div class="lesson-banner">
+                <h2>📝 第一部分：汉-英单项选择题小测试</h2>
+                <p>请为下面的中文词汇选择正确的英文翻译。</p>
+            </div>
+
+            <div id="quizContainer">
+                <!-- Questions generated dynamically -->
+            </div>
+
+            <div class="score-banner" id="mcqScoreBanner"></div>
+
+            <div class="action-footer">
+                <button class="btn btn-outline" onclick="switchPage(1)">⬅ 返回课文</button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-primary" onclick="checkMCQ()">提交答案 / Submit</button>
+                    <button class="btn btn-primary" onclick="switchPage(3)">进入下一页：朗读测试 ➔</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 3: Speech Recognition Reading Test -->
+        <div id="page3" class="page-content">
+            <div class="lesson-banner">
+                <h2>🎙️ 第二部分：生词认读与语音识别测试</h2>
+                <p>测试学生能否在没有拼音的情况下正确读出汉字。遇到困难时可点击“提示”显示拼音。</p>
+            </div>
+
+            <div class="speech-test-card">
+                <div style="font-size: 14px; color: #777;">第 <span id="speechCurrentIdx">1</span> / <span id="speechTotal">7</span> 题</div>
+                
+                <div class="word-display-box" id="speechTargetWord">签证</div>
+                <div class="pinyin-hint-box" id="speechPinyinHint"></div>
+
+                <div class="speech-controls">
+                    <button class="btn btn-outline" onclick="togglePinyinHint()">💡 提示 (显示拼音)</button>
+                    <button class="btn btn-mic" id="recordBtn" onclick="toggleRecording()">🎤 点击开始朗读</button>
+                    <button class="btn btn-outline" onclick="speakText(vocabData[currentSpeechIndex].word)">🔊 听标准发音</button>
+                </div>
+
+                <div class="speech-feedback" id="speechFeedback">点击麦克风后，清晰读出上面的汉字...</div>
+            </div>
+
+            <div class="action-footer">
+                <button class="btn btn-outline" onclick="switchPage(2)">⬅ 返回选择题</button>
+                <button class="btn btn-primary" onclick="nextSpeechWord()">下一个词汇 ➔</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Vocabulary Database
+        const vocabData = [
+            { word: "签证", pinyin: "qiānzhèng", pos: "n.", english: "visa", options: ["visa", "passport", "notice", "paper"] },
+            { word: "入学", pinyin: "rùxué", pos: "v.", english: "enter a school/college", options: ["enter a school/college", "graduate", "study abroad", "go home"] },
+            { word: "通知", pinyin: "tōngzhī", pos: "v./n.", english: "notify; notice", options: ["notify; notice", "material", "certificate", "question"] },
+            { word: "证件", pinyin: "zhèngjiàn", pos: "n.", english: "papers; credentials", options: ["papers; credentials", "material", "visa", "student card"] },
+            { word: "材料", pinyin: "cáiliào", pos: "n.", english: "reference material", options: ["reference material", "homework", "book", "visa"] },
+            { word: "证", pinyin: "zhèng", pos: "n.", english: "certificate; card", options: ["certificate; card", "paper", "photo", "ticket"] },
+            { word: "任何", pinyin: "rènhé", pos: "pron.", english: "any; whatever", options: ["any; whatever", "everybody", "nobody", "sometimes"] }
+        ];
+
+        let mcqAnswers = {};
+        let currentSpeechIndex = 0;
+        let isRecording = false;
+        let recognition = null;
+
+        // Page Switcher
+        function switchPage(pageNum) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            document.getElementById(`page${pageNum}`).classList.add('active');
+            document.querySelectorAll('.tab-btn')[pageNum - 1].classList.add('active');
+
+            if (pageNum === 2 && Object.keys(mcqAnswers).length === 0) {
+                renderMCQ();
+            }
+            if (pageNum === 3) {
+                loadSpeechQuestion(currentSpeechIndex);
+            }
+        }
+
+        // Text-to-Speech Engine
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = 0.85;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // --- PAGE 2: MCQ LOGIC ---
+        function renderMCQ() {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = '';
+
+            vocabData.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'quiz-card';
+                
+                // Shuffle options
+                const shuffledOpts = [...item.options].sort(() => Math.random() - 0.5);
+
+                let optionsHTML = shuffledOpts.map(opt => `
+                    <button class="option-btn" onclick="selectMCQOption(${index}, '${opt}', this)">
+                        ${opt}
+                    </button>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="quiz-title">(${index + 1}) “<span style="color:var(--primary-dark);">${item.word}</span>” 的英文意思是：</div>
+                    <div class="options-grid">${optionsHTML}</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function selectMCQOption(qIdx, selectedOpt, btn) {
+            mcqAnswers[qIdx] = selectedOpt;
+            const parent = btn.parentElement;
+            parent.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        function checkMCQ() {
+            let score = 0;
+            const quizCards = document.querySelectorAll('#quizContainer .quiz-card');
+
+            vocabData.forEach((item, index) => {
+                const card = quizCards[index];
+                const btns = card.querySelectorAll('.option-btn');
+                const userAns = mcqAnswers[index];
+
+                btns.forEach(btn => {
+                    const optText = btn.innerText.trim();
+                    btn.classList.remove('correct', 'wrong', 'selected');
+
+                    if (optText === item.english) {
+                        btn.classList.add('correct');
+                    }
+                    if (userAns === optText && userAns !== item.english) {
+                        btn.classList.add('wrong');
+                    }
+                });
+
+                if (userAns === item.english) {
+                    score++;
+                }
+            });
+
+            const scoreBanner = document.getElementById('mcqScoreBanner');
+            scoreBanner.style.display = 'block';
+            scoreBanner.innerHTML = `得分：${score} / ${vocabData.length} (${Math.round((score/vocabData.length)*100)}分)`;
+
+            if (score === vocabData.length && typeof confetti === 'function') {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+        }
+
+        // --- PAGE 3: SPEECH RECOGNITION LOGIC ---
+        function loadSpeechQuestion(index) {
+            currentSpeechIndex = index;
+            document.getElementById('speechCurrentIdx').innerText = index + 1;
+            document.getElementById('speechTotal').innerText = vocabData.length;
+            document.getElementById('speechTargetWord').innerText = vocabData[index].word;
+            document.getElementById('speechPinyinHint').innerText = '';
+            document.getElementById('speechFeedback').innerHTML = '点击麦克风后，清晰读出上面的汉字...';
+            document.getElementById('speechFeedback').style.color = '#666';
+        }
+
+        function togglePinyinHint() {
+            const hintBox = document.getElementById('speechPinyinHint');
+            const currentItem = vocabData[currentSpeechIndex];
+            if (hintBox.innerText === '') {
+                hintBox.innerText = `${currentItem.pinyin} (${currentItem.pos})`;
+            } else {
+                hintBox.innerText = '';
+            }
+        }
+
+        function nextSpeechWord() {
+            currentSpeechIndex = (currentSpeechIndex + 1) % vocabData.length;
+            loadSpeechQuestion(currentSpeechIndex);
+        }
+
+        // Web Speech API - SpeechRecognition Setup
+        function toggleRecording() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                alert("您的浏览器暂不支持实时语音识别功能，建议使用最新版 Google Chrome 或 Edge 浏览器。");
+                return;
+            }
+
+            const recBtn = document.getElementById('recordBtn');
+            const feedback = document.getElementById('speechFeedback');
+
+            if (isRecording) {
+                if (recognition) recognition.stop();
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = function() {
+                isRecording = true;
+                recBtn.classList.add('recording');
+                recBtn.innerHTML = '🛑 正在录音中... 点击停止';
+                feedback.innerText = '正在聆听，请朗读...';
+                feedback.style.color = '#e67e22';
+            };
+
+            recognition.onresult = function(event) {
+                const spokenText = event.results[0][0].transcript.trim();
+                const target = vocabData[currentSpeechIndex].word;
+
+                if (spokenText.includes(target) || target.includes(spokenText)) {
+                    feedback.innerHTML = `🎉 识别正确！你读的是：“<strong>${spokenText}</strong>”`;
+                    feedback.style.color = 'var(--correct-color)';
+                    if (typeof confetti === 'function') {
+                        confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+                    }
+                } else {
+                    feedback.innerHTML = `❌ 识别结果：“<strong>${spokenText}</strong>”，请再试一次！`;
+                    feedback.style.color = 'var(--wrong-color)';
+                }
+            };
+
+            recognition.onerror = function(event) {
+                feedback.innerText = '录音识别发生错误或未检测到声音，请重试。';
+                feedback.style.color = 'var(--wrong-color)';
+            };
+
+            recognition.onend = function() {
+                isRecording = false;
+                recBtn.classList.remove('recording');
+                recBtn.innerHTML = '🎤 点击开始朗读';
+            };
+
+            recognition.start();
+        }
+    </script>
+</body>
+</html>
